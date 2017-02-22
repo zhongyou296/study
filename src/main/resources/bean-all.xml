@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <bean id="commonProp"
+          class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+        <property name="locations">
+            <list>
+                <value>classpath:common.properties</value>
+            </list>
+        </property>
+        <property name="fileEncoding">
+            <value>UTF-8</value>
+        </property>
+    </bean>
+
+    <bean id="propertyPlaceholderConfigurer"
+          class="org.springframework.beans.factory.config.PreferencesPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>classpath:common.properties</value>
+            </list>
+        </property>
+        <property name="fileEncoding">
+            <value>UTF-8</value>
+        </property>
+    </bean>
+
+    <!--自动扫描base-package中带有@Component注解的组件类-->
+    <context:component-scan base-package="soundsystem,aop,mock11" use-default-filters="false">
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Service" />
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Repository" />
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Component" />
+    </context:component-scan>
+
+    <bean id="blankDisc" class="soundsystem.BlankDisc" >
+        <constructor-arg name="title" value="说谎专辑" />
+        <constructor-arg name="artist" value="林宥嘉" />
+        <constructor-arg>
+            <list>
+                <value>你是我的眼</value>
+                <value>说谎</value>
+                <value>眼前的黑不是黑</value>
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <!--Aspect自动代理会为使用@Aspect注解的bean创建一个代理,这个代理会围绕所有满足切点表达式所匹配的bean-->
+    <aop:aspectj-autoproxy proxy-target-class="true"/>
+
+    <bean id="audience" class="aop.perform.Audience" />
+    <bean id="encoreableIntroducer" class="aop.perform.EncoreableIntroducer" />
+    <bean id="trackCounter" class="soundsystem.TrackCounter" />
+    <bean id="adviceTest" class="aop.advice.AdviceTest" />
+
+    <aop:config proxy-target-class="true">
+        <aop:aspect id = "audienceAspect" ref="audience">
+            <aop:pointcut id="myPointCut" expression="execution(* aop.perform.Performance.perform(..))" />
+            <aop:before method="silenceCellPhones" pointcut-ref="myPointCut" />
+            <aop:before method="takeSeat" pointcut-ref="myPointCut" />
+            <aop:after method="applause" pointcut-ref="myPointCut" />
+            <aop:after-throwing method="demandRefund" pointcut-ref="myPointCut" />
+            <aop:around method="around" pointcut-ref="myPointCut" />
+        </aop:aspect>
+
+        <aop:aspect id="trackCounterAspect" ref="trackCounter">
+            <aop:pointcut id="trackCounterPointCut" expression="execution(void soundsystem.BlankDisc.playTrack(int)) and args(trackNumber))" />
+            <aop:before method="countTrack" pointcut-ref="trackCounterPointCut" />
+        </aop:aspect>
+
+        <aop:aspect>
+            <aop:declare-parents types-matching="aop.perform.Performance+" implement-interface="aop.perform.Encoreable"
+                                 default-impl="aop.perform.EncoreableImpl" />
+        </aop:aspect>
+    </aop:config>
+</beans>
